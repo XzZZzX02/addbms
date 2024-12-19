@@ -1,4 +1,6 @@
 import __main__
+import base64
+import io
 import sys
 import os
 import torch
@@ -8,6 +10,12 @@ from PIL import Image
 import torchvision.transforms as transforms
 
 def image_detect(image_path: str) -> str:
+    """
+        @param image_path: 要检测的图像的绝对路径
+        @return str 检测结果
+                demo: Real image, probability: 0.0092
+    """
+
     # 解析测试选项
     opt = TestOptions().parse(print_options=False)
 
@@ -36,6 +44,60 @@ def image_detect(image_path: str) -> str:
     ])
 
     image = Image.open(image_path).convert('RGB')
+    input_tensor = transform(image).unsqueeze(0).cuda()  # 增加批次维度并移动到GPU
+
+    # 进行预测
+    with torch.no_grad():
+        output = model(input_tensor)
+        prob = torch.sigmoid(output).item()  # 获取 sigmoid 概率
+
+    # 输出预测结果
+    if prob > 0.5:
+        return f'Fake image, probability: {prob:.4f}'
+    else:
+        return f'Real image, probability: {prob:.4f}'
+
+def image_detect(image_base64: str) -> str:
+    """
+        @param image_base64: 要检测的图像的 Base64 编码
+        @return str 检测结果
+                demo: Real image, probability: 0.0092
+    """
+    # 将 Base64 字符串解码为二进制数据
+    binary_data = base64.b64decode(image_base64)
+
+    # 使用 io.BytesIO 将二进制数据转换为内存中的文件对象
+    image_file = io.BytesIO(binary_data)
+
+
+    # 解析测试选项
+    opt = TestOptions().parse(print_options=False)
+
+    # 创建并加载模型
+    model = resnet50(num_classes=1)
+    opt.model_path = os.path.join(os.path.dirname(__file__) + "/NPR.pth")
+    state_dict = torch.load(opt.model_path, map_location='cpu', weights_only="True")
+
+    # 去掉 "module." 前缀
+    # 训练时使用了多卡，推理使用单卡，无需module.前缀
+    from collections import OrderedDict
+    new_state_dict = OrderedDict()
+    for k, v in state_dict['model'].items():
+        name = k[7:]  # 去掉 "module." 前缀
+        new_state_dict[name] = v
+
+    model.load_state_dict(new_state_dict)
+    model.cuda()
+    model.eval()
+
+    # 定义图片预处理步骤
+    transform = transforms.Compose([
+        transforms.Resize((224, 224)),  # 根据模型需求调整图片大小
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # 使用ResNet默认的归一化参数
+    ])
+
+    image = image_file.convert('RGB')
     input_tensor = transform(image).unsqueeze(0).cuda()  # 增加批次维度并移动到GPU
 
     # 进行预测
