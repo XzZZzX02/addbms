@@ -11,8 +11,8 @@ import torchvision.transforms as transforms
 
 def image_detect(image_path: str) -> str:
     """
-        @param image_path: 要检测的图像的绝对路径
-        @return str 检测结果
+    @param image_path: 要检测的图像的绝对路径
+    @return str 检测结果
                 demo: Real image, probability: 0.0092
     """
 
@@ -57,7 +57,7 @@ def image_detect(image_path: str) -> str:
     else:
         return f'Real image, probability: {prob:.4f}'
 
-def image_detect(image_base64: str) -> str:
+def image_detect_base64(image_base64: str) -> str:
     """
         @param image_base64: 要检测的图像的 Base64 编码
         @return str 检测结果
