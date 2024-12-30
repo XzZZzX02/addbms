@@ -1,5 +1,10 @@
 # 生成式人工智能多模态内容识别
 addbms -- AI-generated Detector Database Management Software 
+
+## 概述
+
+本系统旨在帮助应用人员自动判断输入的多模态内容（包括图像、视频、语音、文本等）是否由生成式人工智能（AIGC）生成。系统提供数据录入、内容识别、批量化处理等功能，并支持可视化结果展示。
+
 ## 项目结构
 ```
 addbms
@@ -24,7 +29,104 @@ addbms
 ├── gui     未来会有的
 └── test.py
 ```
+## 系统架构
+
+系统分为以下几个主要模块：
+
+- **数据管理模块 (db.py)**: 负责数据的存储、查询、删除等操作。
+- **文本检测模块 (zippy.py)**: 使用压缩算法判断文本内容是否由AI生成。
+- **图像检测模块 (infer.py, resnet.py, trainer.py)**: 使用预训练的ResNet模型判断图像内容是否由AI生成。
+- **API接口模块 (api.py)**: 提供统一的接口供外部调用。
+- **工具模块 (util.py, base_options.py, test_options.py, train_options.py)**: 提供一些通用工具函数和模型训练/测试选项配置。
+
+## 模块设计
+
+### 数据管理模块(db.py)
+
+#### 功能概述
+
+- 管理多模态数据的存储和查询。
+- 支持插入、删除、查询数据记录。
+- 支持数据真伪检测结果的更新。
+
+#### 数据库设计
+
+表结构：
+
+- `id`：主键，自增。
+- `content`：数据内容，以文本形式存储（图像数据以Base64编码）。
+- `type`：数据类型，如`image`, `text`。
+- `result`：检测结果。
+
+#### 关键函数
+
+`insert(content, type)`：插入数据记录。
+
+`delete(id)`：删除指定记录。
+
+`query(id)`：查询指定记录。
+
+`update(id, result)`：更新检测结果。
+
+### 文本检测模块(zippy.py)
+
+使用开源库[zippy](https://github.com/thinkst/zippy)对本内容进行检测。
+
+#### 功能概述
+
+- 使用压缩算法判断文本内容是否由AI生成。
+- 支持Brotli，Zlib，LZMA等多种压缩算法。
+
+#### 关键函数
+
+`text_detect(text_path)`：读取文本文件并进行检测。
+
+`BrotliLlmDetector`, `ZlibLlmDetector`, `LzmaLlmDetector`：不同压缩算法的检测器类。
+
+### 图像检测模块(infer.py, resnet.py, trainer.py)
+
+使用开源库[NPR](https://github.com/chuangchuangtan/NPR-DeepfakeDetection)对图像内容进行检测。
+
+#### 功能概述
+
+- 使用预训练的ResNet模型判断图像内容是否由AI生成。
+- 支持模型的训练、测试和加载。
+
+#### 关键函数
+
+`image_detect(image_path)`: 读取图像文件并进行检测。
+
+`Trainer`类: 模型训练和推理的基类。
+
+`resnet50`类: 定义ResNet50模型结构。
+
+### API接口模块 (api.py)
+
+#### 功能概述
+
+提供统一的接口供外部调用，进行多模态内容的真伪检测。
+
+#### 关键函数
+
+`detect(filepath, filetype)`: 根据文件类型调用相应的检测模块进行检测。
+
+## 系统流程
+
+1. **数据录入**:
+
+   用户将多模态数据输入系统，数据以特定格式存储在数据库中。
+
+2. **数据识别**:
+
+   - 系统根据数据类型调用相应的检测模块进行真伪判断。
+   - 检测结果存储在数据库中，并进行可视化展示。
+
+3. **批量化处理**:
+
+   - 支持批量选择数据进行识别，结果统一展示。
+
 ## 接口说明
+
 供GUI调用的接口主要由db.py提供, 调用时遵循标准的调用过程   
 1. 初始化数据库
 
